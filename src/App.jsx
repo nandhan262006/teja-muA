@@ -21,10 +21,10 @@ function HomePage() {
       <Helmet>
         <title>Best Bridal Makeup Artist in Nellore - Teju Bridal Artist | Professional Wedding Makeup</title>
         <meta name="description" content="Teju Bridal Artist is the #1 bridal makeup artist in Nellore, Andhra Pradesh. Expert in bridal, HD, airbrush, editorial, movie & commercial makeup. 500+ happy brides. Book your bridal transformation today! Call +91 98400 56242." />
-        <link rel="canonical" href="https://tejubridal.in/" />
+        <link rel="canonical" href="https://teja-mu-a.vercel.app/" />
         <meta property="og:title" content="Best Bridal Makeup Artist in Nellore - Teju Bridal Artist | Professional Wedding Makeup" />
         <meta property="og:description" content="Teju Bridal Artist is the #1 bridal makeup artist in Nellore, Andhra Pradesh. Expert in bridal, HD, airbrush, editorial, movie & commercial makeup. 500+ happy brides. Call +91 98400 56242." />
-        <meta property="og:url" content="https://tejubridal.in/" />
+        <meta property="og:url" content="https://teja-mu-a.vercel.app/" />
         <meta name="twitter:title" content="Best Bridal Makeup Artist in Nellore - Teju Bridal Artist | Professional Wedding Makeup" />
         <meta name="twitter:description" content="Teju Bridal Artist: #1 bridal makeup artist in Nellore. Expert bridal, HD, airbrush, editorial & movie makeup. 500+ happy brides. Book now at +91 98400 56242!" />
       </Helmet>

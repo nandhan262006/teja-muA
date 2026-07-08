@@ -22,14 +22,14 @@ export default function GalleryPage() {
       <Helmet>
         <title>Bridal Makeup Gallery - Teju Bridal Artist | Best Bridal Makeup in Nellore</title>
         <meta name="description" content="Explore Teju Bridal Artist's bridal makeup gallery in Nellore. See HD makeup, airbrush makeup, bridal transformations, and professional makeup looks. Best bridal makeup artist in Nellore, Andhra Pradesh." />
-        <link rel="canonical" href="https://tejubridal.in/gallery" />
+        <link rel="canonical" href="https://teja-mu-a.vercel.app/gallery" />
         <meta property="og:title" content="Bridal Makeup Gallery - Teju Bridal Artist | Best Bridal Makeup in Nellore" />
         <meta property="og:description" content="Explore Teju Bridal Artist's bridal makeup gallery in Nellore. See HD makeup, airbrush makeup, bridal transformations. Best bridal makeup artist in Nellore." />
-        <meta property="og:url" content="https://tejubridal.in/gallery" />
-        <meta property="og:image" content={photos[0]?.img || "https://tejubridal.in/GAL1.png"} />
+        <meta property="og:url" content="https://teja-mu-a.vercel.app/gallery" />
+        <meta property="og:image" content={photos[0]?.img || "https://teja-mu-a.vercel.app/GAL1.png"} />
         <meta name="twitter:title" content="Bridal Makeup Gallery - Teju Bridal Artist | Best Bridal Makeup in Nellore" />
         <meta name="twitter:description" content="Explore Teju Bridal Artist's bridal makeup gallery. HD makeup, airbrush makeup & bridal transformations. Best bridal makeup artist in Nellore." />
-        <meta name="twitter:image" content={photos[0]?.img || "https://tejubridal.in/GAL1.png"} />
+        <meta name="twitter:image" content={photos[0]?.img || "https://teja-mu-a.vercel.app/GAL1.png"} />
       </Helmet>
       <div className="min-h-screen deepa-bg-flat">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24 sm:py-32">
