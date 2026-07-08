@@ -1,0 +1,222 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #d4d4d4;
+  --accent-light: #f0f0f0;
+  --accent-dark: #808080;
+  --red-deep: #1a0000;
+  --red-dark: #3d0000;
+  --red-mid: #b30000;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--red-deep);
+  color: var(--accent-light);
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 500;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--red-deep); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+/* ── Fluid Typography ── */
+h1, h2, h3, h4 { overflow-wrap: break-word; }
+
+/* ── THE EXACT TEXTURE from the poster ── */
+.deepa-bg {
+  position: relative;
+  isolation: isolate;
+}
+.deepa-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg,
+    #1a0000 0%,
+    #3d0000 18%,
+    #b30000 52%,
+    #3d0000 82%,
+    #0d0000 100%
+  );
+}
+.deepa-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image:
+    linear-gradient(45deg,  rgba(255,255,255,0.025) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.025) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, rgba(255,255,255,0.025) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.025) 75%);
+  background-size: 5px 5px;
+  background-position: 0 0, 0 2.5px, 2.5px -2.5px, -2.5px 0;
+  pointer-events: none;
+}
+.deepa-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse 75% 75% at 50% 50%,
+    rgba(179,0,0,0.08) 0%,
+    rgba(26,0,0,0.65) 100%
+  );
+  pointer-events: none;
+}
+.deepa-bg > * { position: relative; z-index: 3; }
+
+.deepa-bg-flat {
+  background-color: #3d0000;
+  background-image:
+    linear-gradient(45deg,  rgba(255,255,255,0.022) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.022) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, rgba(255,255,255,0.022) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.022) 75%);
+  background-size: 5px 5px;
+  background-position: 0 0, 0 2.5px, 2.5px -2.5px, -2.5px 0;
+}
+
+.deepa-bg-dark {
+  background-color: #1a0000;
+  background-image:
+    linear-gradient(45deg,  rgba(255,255,255,0.02) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.02) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, rgba(255,255,255,0.02) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.02) 75%);
+  background-size: 5px 5px;
+  background-position: 0 0, 0 2.5px, 2.5px -2.5px, -2.5px 0;
+}
+
+.accent-text {
+  color: #d4d4d4;
+  background: linear-gradient(135deg, #d4d4d4 0%, #f0f0f0 50%, #b8b8b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-text-stroke: 0.5px transparent;
+  padding: 0.15em 0;
+}
+
+.divider-accent {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d4d4d4, #f0f0f0, #d4d4d4, transparent);
+}
+
+.exif-correct { image-orientation: from-image; }
+.shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(212,212,212,0.12) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ── Responsive Helpers ── */
+@media (max-width: 767px) {
+  .section-padding { padding: 2rem 1rem 4rem; }
+  .hero-heading { font-size: clamp(1.3rem, 5.5vw, 3rem) !important; letter-spacing: 0.02em !important; }
+  .hero-sub { font-size: clamp(1.75rem, 6vw, 2rem) !important; }
+  .section-title-lg { font-size: clamp(1.75rem, 7vw, 2.25rem) !important; }
+  .hide-mobile { display: none !important; }
+  .stack-mobile { flex-direction: column !important; }
+  .text-center-mobile { text-align: center !important; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .section-padding { padding: 5rem 2rem; }
+  .tablet-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (min-width: 1024px) {
+  .section-padding { padding: 7rem 1.5rem; }
+}
+
+/* min touch target */
+.touch-target { min-height: 44px; min-width: 44px; }
+
+/* ── Brands Marquee ── */
+.marquee-container {
+  mask-image: linear-gradient(to right, transparent 1%, black 6%, black 94%, transparent 99%);
+  -webkit-mask-image: linear-gradient(to right, transparent 1%, black 6%, black 94%, transparent 99%);
+  overflow: hidden;
+  width: 100%;
+}
+
+.marquee-holder {
+  overflow: hidden;
+  width: 100%;
+}
+
+.marquee-track {
+  animation: marquee-scroll 50s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.brand-card {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.brand-card:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 20px rgba(212, 212, 212, 0.25),
+              0 0 50px rgba(212, 212, 212, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .marquee-track:hover { animation-play-state: running; }
+}
+
+/* ── Accent Shimmer Heading ── */
+.accent-shimmer {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(135deg, #d4d4d4 0%, #f0f0f0 30%, #d4d4d4 50%, #f0f0f0 70%, #b8b8b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 250% 100%;
+  animation: accent-shimmer-move 4s ease-in-out infinite;
+  -webkit-text-stroke: 0.5px transparent;
+  padding: 0.15em 0;
+}
+
+@keyframes accent-shimmer-move {
+  0%, 100% { background-position: 0% 0; }
+  50%      { background-position: 100% 0; }
+}
+
+@media (max-width: 767px) {
+  .brand-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}

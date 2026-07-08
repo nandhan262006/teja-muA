@@ -1,0 +1,575 @@
+================================================================================
+  SANITY CMS SETUP TEMPLATE — FOR ANY REACT/VITE PROJECT
+  Complete Guide: Schemas → Client → Queries → Fetch → Deploy
+================================================================================
+
+This guide explains how to set up Sanity CMS from scratch for any project.
+All steps are copy-paste ready. Just replace placeholders with your values.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+  PART 1: Sanity Studio Setup (Schemas + Config)
+    1.1 Create a Sanity Project
+    1.2 Create Schema Files
+    1.3 Register Schemas (index.js)
+    1.4 Configure Studio (sanity.config.js)
+    1.5 Configure CLI (sanity.cli.js)
+
+  PART 2: Frontend Setup (Client + Queries + Fetching)
+    2.1 Install Frontend Dependencies
+    2.2 Create Sanity Client
+    2.3 Create GROQ Queries
+    2.4 Create useSanity Hook
+    2.5 (Optional) Create Context Provider for Global Settings
+
+  PART 3: Deploy
+    3.1 Deploy Studio to Sanity Hosting
+    3.2 Add CORS Origins
+
+
+================================================================================
+PART 1: SANITY STUDIO SETUP
+================================================================================
+
+--------------------------------------------------------------------
+1.1 Create a Sanity Project
+--------------------------------------------------------------------
+
+Step A: Go to https://sanity.io/manage → Create new project
+  - Note your PROJECT_ID (looks like: abcdef12)
+  - Create a dataset called "production"
+
+Step B: In your project folder, initialize Sanity Studio:
+  npm create sanity@latest -- --project YOUR_PROJECT_ID --dataset production --output-path studio
+
+Step C: Install dependencies:
+  cd studio
+  npm install
+
+This creates:
+  studio/
+  ├── sanity.config.js     ← Studio configuration
+  ├── sanity.cli.js        ← CLI configuration
+  ├── package.json
+  └── schemas/
+      └── index.js         ← Exports all schemas
+
+
+--------------------------------------------------------------------
+1.2 Create Schema Files
+--------------------------------------------------------------------
+
+Each schema = one file in /studio/schemas/ folder.
+
+BASIC SCHEMA TEMPLATE (for any collection like blog posts, products, etc.):
+
+File: /studio/schemas/yourSchemaName.js
+
+  export default {
+    name: 'yourSchemaName',         // Used in GROQ queries (*[_type == "yourSchemaName"])
+    title: 'Your Schema Title',      // Display name in Sanity Studio
+    type: 'document',                // "document" = multiple entries allowed
+    fields: [
+      {
+        name: 'title',
+        title: 'Title',
+        type: 'string',
+        validation: (Rule) => Rule.required(),
+      },
+      {
+        name: 'image',
+        title: 'Image',
+        type: 'image',
+        options: { hotspot: true },
+      },
+      {
+        name: 'description',
+        title: 'Description',
+        type: 'text',
+      },
+      {
+        name: 'order',
+        title: 'Order',
+        type: 'number',
+      },
+    ],
+    orderings: [
+      {
+        title: 'Order',
+        name: 'order',
+        by: [{ field: 'order', direction: 'asc' }],
+      },
+    ],
+    preview: {
+      select: { title: 'title', media: 'image' },
+      prepare({ title, media }) {
+        return { title: title || 'Untitled', media }
+      },
+    },
+  }
+
+FIELD TYPES CHEAT SHEET:
+  ┌──────────────┬──────────────────────────────┐
+  │ type         │ What it creates              │
+  ├──────────────┼──────────────────────────────┤
+  │ 'string'     │ Single-line text input       │
+  │ 'text'       │ Multi-line textarea          │
+  │ 'number'     │ Number input                 │
+  │ 'boolean'    │ Checkbox                     │
+  │ 'image'      │ Image upload with preview    │
+  │ 'file'       │ File upload                  │
+  │ 'date'       │ Date picker                  │
+  │ 'datetime'   │ Date + time picker            │
+  │ 'url'        │ URL input with validation    │
+  │ 'slug'       │ URL-friendly slug generator  │
+  │ 'array'      │ List of items                │
+  │ 'object'     │ Group of sub-fields          │
+  │ 'reference'  │ Link to another document     │
+  │ 'block'      │ Rich text editor (portable   │
+  │              │ text)                        │
+  └──────────────┴──────────────────────────────┘
+
+
+SINGLETON SCHEMA TEMPLATE (for global settings, about page, etc.):
+
+File: /studio/schemas/siteSettings.js
+
+  export default {
+    name: 'siteSettings',
+    title: 'Site Settings',
+    type: 'document',
+    fields: [
+      { name: 'siteTitle', title: 'Site Title', type: 'string' },
+      { name: 'logo', title: 'Logo', type: 'image' },
+      { name: 'description', title: 'Description', type: 'text' },
+    ],
+  }
+
+NOTE: Singletons are enforced in sanity.config.js (see section 1.4),
+      NOT in the schema file itself.
+
+
+ARRAY OF OBJECTS TEMPLATE (for repeatable structured data like team members, features, etc.):
+
+  {
+    name: 'team',
+    title: 'Team Members',
+    type: 'array',
+    of: [
+      {
+        type: 'object',
+        fields: [
+          { name: 'name', title: 'Name', type: 'string' },
+          { name: 'role', title: 'Role', type: 'string' },
+          { name: 'photo', title: 'Photo', type: 'image' },
+        ],
+        preview: {
+          select: { title: 'name', subtitle: 'role', media: 'photo' },
+        },
+      },
+    ],
+  }
+
+
+--------------------------------------------------------------------
+1.3 Register Schemas (index.js)
+--------------------------------------------------------------------
+
+File: /studio/schemas/index.js
+
+  import yourSchemaName from './yourSchemaName'
+  import siteSettings from './siteSettings'
+  // ... import all your schemas
+
+  export const schemaTypes = [
+    yourSchemaName,
+    siteSettings,
+    // ... add all your schemas here
+  ]
+
+IMPORTANT: Every new schema file must be:
+  1. Imported at the top
+  2. Added to the schemaTypes array
+  Otherwise it won't appear in the Studio.
+
+
+--------------------------------------------------------------------
+1.4 Configure Studio (sanity.config.js)
+--------------------------------------------------------------------
+
+File: /studio/sanity.config.js
+
+  import { defineConfig } from 'sanity'
+  import { structureTool } from 'sanity/structure'
+  import { visionTool } from '@sanity/vision'
+  import { schemaTypes } from './schemas'
+
+  export default defineConfig({
+    name: 'default',
+    title: 'Your Studio Title',
+
+    projectId: 'YOUR_PROJECT_ID',
+    dataset: 'production',
+
+    plugins: [
+      structureTool({
+        structure: (S) =>
+          S.list()
+            .title('Content')
+            .items([
+              // --- SINGLETONS (appear first) ---
+              S.listItem()
+                .title('Site Settings')
+                .child(
+                  S.document()
+                    .schemaType('siteSettings')
+                    .documentId('siteSettings')
+                ),
+
+              S.divider(),
+
+              // --- REGULAR DOCUMENTS ---
+              S.listItem()
+                .title('Your Schema Name')
+                .schemaType('yourSchemaName')
+                .child(
+                  S.documentTypeList('yourSchemaName')
+                    .title('Your Schema Name')
+                ),
+
+              // Add more document types here...
+            ]),
+      }),
+      visionTool(),
+    ],
+
+    schema: {
+      types: schemaTypes,
+    },
+  })
+
+KEY POINTS:
+  - Singletons: Use S.document().schemaType('x').documentId('x')
+    → Only ONE document of this type. Fixed ID prevents duplicates.
+  - Lists: Use S.documentTypeList('x')
+    → Users can create/edit/delete multiple documents.
+  - visionTool: Adds GROQ query playground for testing.
+  - schema: { types: schemaTypes } connects your schema files.
+
+
+--------------------------------------------------------------------
+1.5 Configure CLI (sanity.cli.js)
+--------------------------------------------------------------------
+
+File: /studio/sanity.cli.js
+
+  import { defineCliConfig } from 'sanity/cli'
+
+  export default defineCliConfig({
+    api: {
+      projectId: 'YOUR_PROJECT_ID',
+      dataset: 'production',
+    },
+  })
+
+Used for commands like: sanity start, sanity build, sanity deploy.
+
+
+================================================================================
+PART 2: FRONTEND SETUP
+================================================================================
+
+--------------------------------------------------------------------
+2.1 Install Frontend Dependencies
+--------------------------------------------------------------------
+
+In your project root (NOT the studio folder):
+
+  npm install @sanity/client @sanity/image-url
+
+
+--------------------------------------------------------------------
+2.2 Create Sanity Client
+--------------------------------------------------------------------
+
+File: /src/sanity/client.js
+
+  import { createClient } from '@sanity/client'
+  import imageUrlBuilder from '@sanity/image-url'
+
+  const client = createClient({
+    projectId: import.meta.env.VITE_SANITY_PROJECT_ID || 'YOUR_PROJECT_ID',
+    dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
+    useCdn: true,
+    apiVersion: '2024-01-01',
+  })
+
+  const builder = imageUrlBuilder(client)
+
+  export function urlFor(source) {
+    return builder.image(source)
+  }
+
+  export default client
+
+.env file lo add cheyali:
+
+File: .env (or .env.local)
+
+  VITE_SANITY_PROJECT_ID=YOUR_PROJECT_ID
+  VITE_SANITY_DATASET=production
+
+
+--------------------------------------------------------------------
+2.3 Create GROQ Queries
+--------------------------------------------------------------------
+
+File: /src/sanity/queries.js
+
+  // Fetch ALL documents of a type (sorted by order)
+  export const yourSchemaQuery = `*[_type == "yourSchemaName"] | order(order asc)`
+
+  // Fetch a SINGLE document (singleton)
+  export const settingsQuery = `*[_type == "siteSettings"][0]`
+
+  // Fetch a single document by ID
+  export const singleDocQuery = (id) => `*[_id == "${id}"][0]`
+
+  // Fetch with filtering
+  export const filteredQuery = (category) =>
+    `*[_type == "yourSchemaName" && category == "${category}"] | order(order asc)`
+
+  // Fetch with field projection (only get specific fields)
+  export const projectionQuery = `*[_type == "yourSchemaName"]{title, image, order} | order(order asc)`
+
+GROQ SYNTAX CHEAT SHEET:
+  ┌──────────────────────────────┬──────────────────────────────────┐
+  │ Query                        │ What it does                    │
+  ├──────────────────────────────┼──────────────────────────────────┤
+  │ *[_type == "x"]             │ All documents of type x          │
+  │ *[_type == "x"][0]          │ First document of type x         │
+  │ *[_id == "abc"][0]          │ Document with specific ID        │
+  │ *[_type == "x"] | order(f asc) │ Sort by field f ascending     │
+  │ *[_type == "x"] | order(f desc)│ Sort by field f descending    │
+  │ *[_type == "x"]{field1, field2}│ Get only specific fields      │
+  │ *[_type == "x" && field == "y"]│ Filter by field value         │
+  │ *[_type == "x"]{..., "imageUrl": image.asset->url}             │
+  │                              │ Resolve image URL in query      │
+  └──────────────────────────────┴──────────────────────────────────┘
+
+
+--------------------------------------------------------------------
+2.4 Create useSanity Hook
+--------------------------------------------------------------------
+
+File: /src/sanity/useSanity.js
+
+  import { useState, useEffect } from 'react'
+  import client from './client'
+
+  export function useSanity(query) {
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+      if (!query) {
+        setLoading(false)
+        return
+      }
+
+      let cancelled = false
+      setLoading(true)
+
+      client.fetch(query)
+        .then(result => {
+          if (!cancelled) {
+            setData(result)
+            setLoading(false)
+          }
+        })
+        .catch(err => {
+          if (!cancelled) {
+            setError(err)
+            setLoading(false)
+          }
+        })
+
+      return () => { cancelled = true }
+    }, [query])
+
+    return { data, loading, error }
+  }
+
+NOTE: The "cancelled" flag prevents state updates on unmounted components
+      (avoids React memory leak warnings).
+
+
+--------------------------------------------------------------------
+2.5 (Optional) Create Context Provider for Global Settings
+--------------------------------------------------------------------
+
+Use this when you need global data (site settings, nav, footer)
+across many components without passing props.
+
+File: /src/sanity/SiteSettingsProvider.jsx
+
+  import { createContext, useContext } from 'react'
+  import { useSanity } from './useSanity'
+  import { settingsQuery } from './queries'
+
+  const SiteSettingsContext = createContext(null)
+
+  export function SiteSettingsProvider({ children }) {
+    const { data: settings, loading } = useSanity(settingsQuery)
+
+    return (
+      <SiteSettingsContext.Provider value={{ settings, loading }}>
+        {children}
+      </SiteSettingsContext.Provider>
+    )
+  }
+
+  export function useSiteSettings() {
+    const context = useContext(SiteSettingsContext)
+    if (!context) {
+      throw new Error('useSiteSettings must be used within SiteSettingsProvider')
+    }
+    return context
+  }
+
+Usage in App.jsx:
+
+  import { SiteSettingsProvider } from './sanity/SiteSettingsProvider'
+
+  function App() {
+    return (
+      <SiteSettingsProvider>
+        <YourComponents />
+      </SiteSettingsProvider>
+    )
+  }
+
+Usage in any component:
+
+  import { useSiteSettings } from '../sanity/SiteSettingsProvider'
+
+  function Navbar() {
+    const { settings } = useSiteSettings()
+    return <h1>{settings?.siteTitle}</h1>
+  }
+
+
+================================================================================
+PART 3: DEPLOY
+================================================================================
+
+--------------------------------------------------------------------
+3.1 Deploy Studio to Sanity Hosting
+--------------------------------------------------------------------
+
+  cd studio
+  npx sanity build
+  npx sanity deploy
+
+You'll be asked for a hostname (e.g., "myproject").
+Studio will be live at: https://myproject.sanity.studio
+
+
+--------------------------------------------------------------------
+3.2 Add CORS Origins
+--------------------------------------------------------------------
+
+Go to: https://sanity.io/manage → Your Project → API → CORS origins
+
+Add these origins:
+  http://localhost:5173           (for Vite dev)
+  http://localhost:3000           (for Next.js dev)
+  https://yourdomain.com          (for production)
+
+Without CORS, the browser will block requests from your frontend.
+
+
+================================================================================
+COMPLETE EXAMPLE: Blog Post Schema + Fetch
+================================================================================
+
+SCHEMA (/studio/schemas/post.js):
+
+  export default {
+    name: 'post',
+    title: 'Blog Post',
+    type: 'document',
+    fields: [
+      { name: 'title', title: 'Title', type: 'string', validation: Rule => Rule.required() },
+      { name: 'slug', title: 'Slug', type: 'slug', options: { source: 'title' } },
+      { name: 'author', title: 'Author', type: 'string' },
+      { name: 'coverImage', title: 'Cover Image', type: 'image' },
+      { name: 'excerpt', title: 'Excerpt', type: 'text' },
+      { name: 'content', title: 'Content', type: 'block' },
+      { name: 'publishedAt', title: 'Published At', type: 'datetime' },
+    ],
+    orderings: [
+      { title: 'Published Date', name: 'publishedAt', by: [{ field: 'publishedAt', direction: 'desc' }] },
+    ],
+  }
+
+QUERY (/src/sanity/queries.js):
+
+  export const postsQuery = `*[_type == "post"] | order(publishedAt desc)`
+  export const singlePostQuery = (slug) => `*[_type == "post" && slug.current == "${slug}"][0]`
+
+COMPONENT (/src/components/Blog.jsx):
+
+  import { useSanity } from '../sanity/useSanity'
+  import { postsQuery } from '../sanity/queries'
+  import { urlFor } from '../sanity/client'
+
+  function Blog() {
+    const { data: posts, loading, error } = useSanity(postsQuery)
+
+    if (loading) return <div>Loading...</div>
+    if (error) return <div>Error: {error.message}</div>
+
+    return (
+      <div className="grid grid-cols-3 gap-6">
+        {posts?.map(post => (
+          <div key={post._id}>
+            <img src={urlFor(post.coverImage).width(600).url()} alt={post.title} />
+            <h2>{post.title}</h2>
+            <p>{post.excerpt}</p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+
+================================================================================
+QUICK RECIPE: Add a New Schema in 5 Minutes
+================================================================================
+
+1. CREATE FILE: /studio/schemas/mySchema.js
+   → Export default { name, title, type: 'document', fields, orderings, preview }
+
+2. REGISTER: /studio/schemas/index.js
+   → import mySchema from './mySchema'
+   → Add mySchema to schemaTypes array
+
+3. CONFIGURE: /studio/sanity.config.js
+   → Add S.listItem() for this schema type in structureTool
+
+4. RESTART STUDIO: Press Ctrl+C in studio terminal → npx sanity start
+
+5. QUERY: /src/sanity/queries.js
+   → Add: export const myQuery = `*[_type == "mySchema"] | order(order asc)`
+
+6. FETCH in component:
+   → const { data } = useSanity(myQuery)
+   → Render data in JSX
+
+
+================================================================================
+END OF TEMPLATE
+================================================================================

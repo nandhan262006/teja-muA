@@ -1,0 +1,1317 @@
+================================================================================
+  DEEPA BRIDAL STUDIO - SANITY CMS SCHEMA SETUP GUIDE
+  Complete Step-by-Step Explanation
+================================================================================
+
+This document explains exactly how the Sanity CMS was set up for this project.
+Follow these steps in order to recreate it manually.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+  1.  Initial Setup (Sanity Project + Studio)
+  2.  Schema File Structure
+  3.  Understanding the Schema Export (index.js)
+  4.  Schema: service.js
+  5.  Schema: bridalPackage.js
+  6.  Schema: testimonial.js
+  7.  Schema: galleryImage.js
+  8.  Schema: brand.js
+  9.  Schema: faq.js
+  10. Schema: training.js
+  11. Schema: about.js
+  12. Schema: siteSettings.js (Singleton)
+  13. Studio Configuration (sanity.config.js)
+  14. Sanity CLI Configuration (sanity.cli.js)
+  15. Frontend: Sanity Client
+  16. Frontend: GROQ Queries
+  17. Frontend: useSanity Hook
+  18. Frontend: SiteSettingsProvider (Context)
+  19. Connecting Studio to the App
+  20. The Big Picture: Data Flow
+  21. Gallery Schema Deep Dive (Image + Order Only)
+  22. How Order Really Works (No Auto-Replace)
+  23. Deploying the Sanity Studio
+
+
+================================================================================
+1. INITIAL SETUP (Sanity Project + Studio)
+================================================================================
+
+Step 1: Create a Sanity project (done once on sanity.io/manage)
+  - Go to https://sanity.io/manage
+  - Create a new project
+  - Name: "Deepa Bridal Studio"
+  - Note the PROJECT ID (for us: "woupzwa5")
+  - Create a dataset called "production"
+
+Step 2: Initialize Sanity Studio in the project folder
+  - In the terminal, inside the project root:
+       npm create sanity@latest -- --project 8vissldq --dataset production --output-path studio
+  - This creates a /studio folder with sanity.config.js, sanity.cli.js,
+    package.json, and a schemas/ folder
+
+Step 3: Install studio dependencies
+  - Go to /studio folder:
+       cd studio
+       npm install
+  - This installs sanity, @sanity/vision, styled-components
+
+Step 4: Install frontend Sanity client (in project root):
+       npm install @sanity/client @sanity/image-url
+
+
+================================================================================
+2. SCHEMA FILE STRUCTURE
+================================================================================
+
+Inside /studio/schemas/, we have these files:
+
+  studio/schemas/
+  ├── index.js          (exports ALL schema types to Sanity)
+  ├── about.js          (About section content)
+  ├── brand.js          (Partner brand logos)
+  ├── bridalPackage.js  (Bridal makeup packages - Basic/HD/Airbrush)
+  ├── faq.js            (FAQ questions & answers)
+  ├── galleryImage.js   (Gallery photos with categories)
+  ├── service.js        (Services offered)
+  ├── siteSettings.js   (Global site settings - singleton)
+  ├── testimonial.js    (Client testimonials)
+  └── training.js       (Training gallery photos)
+
+Each file exports a single object. That object is a "schema definition"
+that tells Sanity: "Here is a document type, here are its fields."
+
+
+================================================================================
+3. UNDERSTANDING THE SCHEMA EXPORT (index.js)
+================================================================================
+
+File: /studio/schemas/index.js
+
+  import about from './about.js'
+  import bridalPackage from './bridalPackage.js'
+  import service from './service.js'
+  import testimonial from './testimonial.js'
+  import galleryImage from './galleryImage.js'
+  import brand from './brand.js'
+  import faq from './faq.js'
+  import training from './training.js'
+  import siteSettings from './siteSettings.js'
+
+  export const schemaTypes = [
+    about, bridalPackage, service, testimonial,
+    galleryImage, brand, faq, training, siteSettings,
+  ]
+
+WHAT THIS DOES:
+  - Imports all 9 schema files
+  - Exports them as an array named "schemaTypes"
+  - This array is imported in sanity.config.js (see section 13)
+  - Sanity reads this array to know what document types exist
+
+MANUAL STEPS:
+  - Every time you create a new schema file in /studio/schemas/, you MUST:
+    1. Import it at the top of index.js
+    2. Add it to the schemaTypes array
+  - If you forget either step, the new schema won't appear in the Studio.
+
+
+================================================================================
+4. SCHEMA: service.js (Services Section)
+================================================================================
+
+File: /studio/schemas/service.js
+
+BEFORE YOU START - Think about the data:
+  - The website shows a Services section with cards
+  - Each card needs: Title, Subtitle, Icon, and an Order
+  - This is REPEATING content (multiple services)
+  - So it's a "document" type (not "singleton")
+
+CODE:
+  export default {
+    name: 'service',         // Internal Sanity ID (used in GROQ queries)
+    title: 'Service',        // Display name shown in Sanity Studio
+    type: 'document',        // This is a document type (can have multiple entries)
+    fields: [                // Array of field definitions
+      {
+        name: 'title',       // Field ID (used in queries)
+        title: 'Title',      // Field label shown in Studio
+        type: 'string',      // Data type: string, text, image, number, array, object
+      },
+      {
+        name: 'subtitle',
+        title: 'Subtitle',
+        type: 'string',
+      },
+      {
+        name: 'icon',
+        title: 'Icon Name',
+        type: 'string',
+        description: 'Lucide icon name (e.g. Scissors, Star, Sparkles, Gem)',
+        // description adds a help tooltip in the Studio
+      },
+      {
+        name: 'order',
+        title: 'Order',
+        type: 'number',
+      },
+    ],
+    orderings: [             // Defines sort orders for the list view
+      {
+        title: 'Order',      // Label shown in the sort dropdown
+        name: 'order',       // Internal name
+        by: [{field: 'order', direction: 'asc'}],  // Sort by "order" field ascending
+      },
+    ],
+  }
+
+KEY CONCEPTS:
+  - name: The internal identifier. Used in GROQ queries like:
+           *[_type == "service"]  -- the _type matches "name"
+  - title: Just a human-readable label for the Sanity Studio UI
+  - type:  "document" means each entry is a separate document with its own ID
+  - fields: Each field has { name, title, type }
+  - type 'string': A single line of text input
+  - type 'text': A multi-line textarea input
+  - type 'number': A number input
+  - type 'image': An image upload field
+  - type 'array': A list of items (used for repeatable content)
+  - type 'object': A group of sub-fields
+
+MANUAL STEPS TO CREATE THIS FILE:
+  1. Create /studio/schemas/service.js
+  2. export default { name, title, type, fields, orderings }
+  3. In index.js: import service from './service.js' + add to schemaTypes
+  4. Save all files
+
+
+================================================================================
+5. SCHEMA: bridalPackage.js (Bridal Makeup Packages)
+================================================================================
+
+File: /studio/schemas/bridalPackage.js
+
+THINK ABOUT THE DATA:
+  - Exactly 3 packages: Basic Makeup, HD Makeup, Airbrush Makeup
+  - Each has: order, title, subtitle, description, features (list), image
+  - The title/subtitle/description/features should NOT be editable
+    (they're fixed content that the client can't change)
+  - Only the image (photo) should be replaceable
+
+CODE:
+  export default {
+    name: 'bridalPackage',
+    title: 'Bridal Package',
+    type: 'document',
+    fields: [
+      {
+        name: 'order',
+        title: 'Package',
+        type: 'number',
+        description: '1 = Basic Makeup, 2 = HD Makeup, 3 = Airbrush Makeup',
+        options: {
+          list: [                          // Restricts input to a dropdown
+            {title: '1 - Basic Makeup', value: 1},
+            {title: '2 - HD Makeup', value: 2},
+            {title: '3 - Airbrush Makeup', value: 3},
+          ],
+        },
+        readOnly: true,                    // Cannot be edited once created
+      },
+      {
+        name: 'title',
+        title: 'Title',
+        type: 'string',
+        readOnly: true,
+      },
+      // ... subtitle, description, features all have readOnly: true
+      {
+        name: 'image',
+        title: 'Photo (click to replace)',
+        type: 'image',
+        options: {hotspot: true},          // Enables focal point selection
+        // NOTE: No readOnly here -- only image is editable
+      },
+    ],
+    orderings: [{title: 'Order', name: 'order', by: [{field: 'order', direction: 'asc'}]}],
+    preview: {                              // Custom preview in the list view
+      select: { order: 'order', title: 'title', media: 'image' },
+      prepare({order, title, media}) {
+        const labels = {1: 'Basic Makeup', 2: 'HD Makeup', 3: 'Airbrush Makeup'}
+        return { title: labels[order] || `Package ${order}`, subtitle: title, media }
+      },
+    },
+  }
+
+NEW CONCEPTS:
+  - options.list: Creates a dropdown/select menu. User can only pick from the list.
+  - readOnly: true: Field is not editable in the Studio.
+    Used here to prevent editing fixed package content.
+  - options.hotspot: true: Enables the "hotspot" tool for images.
+    Allows cropping focal point selection.
+  - preview: Customizes how the document appears in the document list.
+    - select: Which fields to query for the preview
+    - prepare(): A function that returns { title, subtitle, media }
+    - This is purely visual -- affects only the Studio UI.
+
+MANUAL STEPS:
+  1. Define field for fixed dropdown (order)
+  2. Set readOnly on fields that shouldn't be edited
+  3. Add image field WITHOUT readOnly (so it can be updated)
+  4. Add custom preview to show package name + image in the list
+
+
+================================================================================
+6. SCHEMA: testimonial.js (Client Testimonials)
+================================================================================
+
+File: /studio/schemas/testimonial.js
+
+THINK:
+  - Client name, occasion (e.g., "Bridal Makeup"), the testimonial text,
+    star rating (1-5), and sort order
+
+CODE:
+  export default {
+    name: 'testimonial',
+    title: 'Testimonial',
+    type: 'document',
+    fields: [
+      { name: 'name', title: 'Name', type: 'string' },
+      { name: 'occasion', title: 'Occasion', type: 'string' },
+      { name: 'text', title: 'Text', type: 'text' },
+      {
+        name: 'stars',
+        title: 'Stars',
+        type: 'number',
+        validation: (Rule) => Rule.min(1).max(5),
+        // validation ensures the value is between 1 and 5
+      },
+      { name: 'order', title: 'Order', type: 'number' },
+    ],
+    orderings: [{title: 'Order', name: 'order', by: [{field: 'order', direction: 'asc'}]}],
+  }
+
+NEW CONCEPT:
+  - validation: Adds validation rules to a field.
+    - Rule.min(1).max(5): Stars must be between 1 and 5 inclusive.
+    - Sanity shows a validation error in the Studio if violated.
+    - Common methods: .min(), .max(), .required(), .custom(), .warning()
+
+MANUAL STEPS:
+  1. Define basic string fields
+  2. Add validation to the numeric field
+  3. Add orderings for sort
+
+
+================================================================================
+7. SCHEMA: galleryImage.js (Gallery Photos - Simplified)
+================================================================================
+
+File: /studio/schemas/galleryImage.js
+
+THINK:
+  - You want a simple gallery: just upload photos and set their position
+  - Only 2 inputs per photo: Image upload + Order number
+  - No title, no category -- just pure photo + position
+
+CODE:
+  export default {
+    name: 'galleryImage',
+    title: 'Gallery Image',
+    type: 'document',
+    fields: [
+      {
+        name: 'image',
+        title: 'Photo',
+        type: 'image',
+        options: { hotspot: true },    // Enables focal point cropping
+      },
+      {
+        name: 'order',
+        title: 'Position (Order)',
+        type: 'number',
+        description: 'Lower number = appears first. E.g., 1, 2, 3...',
+      },
+    ],
+    orderings: [
+      {
+        title: 'Order',
+        name: 'order',
+        by: [{field: 'order', direction: 'asc'}],
+      },
+    ],
+    preview: {
+      select: { order: 'order', media: 'image' },
+      prepare({ order, media }) {
+        return {
+          title: order ? `Position ${order}` : 'No order set',
+          media,
+        }
+      },
+    },
+  }
+
+WHAT THIS DOES:
+  - name: 'galleryImage' -> _type in GROQ queries will be "galleryImage"
+  - 2 fields: image (upload) + order (number)
+  - orderings: Documents sorted by "order" ascending (1, 2, 3, ...)
+  - preview: Shows thumbnail + "Position 1", "Position 2", etc. in list view
+
+HOW THE LIST VIEW LOOKS IN SANITY STUDIO:
+  ┌─────────────────────────────────────────┐
+  │  Gallery Images                         │
+  ├─────────────────────────────────────────┤
+  │  [img] Position 1                       │
+  │  [img] Position 2                       │
+  │  [img] Position 3                       │
+  │  ...                                    │
+  └─────────────────────────────────────────┘
+  Sorted by order ascending automatically.
+
+MANUAL STEPS TO CREATE:
+  1. Create /studio/schemas/galleryImage.js with above code
+  2. In /studio/schemas/index.js, add:
+       import galleryImage from './galleryImage.js'
+       // and add 'galleryImage' to the schemaTypes array
+  3. In /studio/sanity.config.js, add to structureTool:
+       S.listItem()
+         .title('Gallery Images')
+         .schemaType('galleryImage')
+         .child(S.documentTypeList('galleryImage').title('Gallery Images'))
+  4. Studio lo "Gallery Images" ani new section kanipistundi
+
+
+================================================================================
+8. SCHEMA: brand.js (Partner Brands)
+================================================================================
+
+File: /studio/schemas/brand.js
+
+THINK:
+  - Brand logos displayed on the site
+  - Each has: brand name, logo image, sort order
+
+CODE:
+  export default {
+    name: 'brand',
+    title: 'Brand',
+    type: 'document',
+    fields: [
+      { name: 'name', title: 'Name', type: 'string' },
+      { name: 'logo', title: 'Logo', type: 'image' },
+      { name: 'order', title: 'Order', type: 'number' },
+    ],
+    orderings: [{title: 'Order', name: 'order', by: [{field: 'order', direction: 'asc'}]}],
+  }
+
+Simple schema -- just has string, image, and number fields with ordering.
+
+
+================================================================================
+9. SCHEMA: faq.js (FAQ Questions)
+================================================================================
+
+File: /studio/schemas/faq.js
+
+THINK:
+  - FAQ accordion on the site
+  - Each has: question (string), answer (text/multiline), order
+
+CODE:
+  export default {
+    name: 'faq',
+    title: 'FAQ',
+    type: 'document',
+    fields: [
+      { name: 'question', title: 'Question', type: 'string' },
+      { name: 'answer', title: 'Answer', type: 'text' },
+      { name: 'order', title: 'Order', type: 'number' },
+    ],
+    orderings: [{title: 'Order', name: 'order', by: [{field: 'order', direction: 'asc'}]}],
+  }
+
+
+================================================================================
+10. SCHEMA: training.js (Training Gallery)
+================================================================================
+
+File: /studio/schemas/training.js
+
+THINK:
+  - Photos for the Training section
+  - Categories: "Training" or "Brand Association"
+  - Each has: title, image, category dropdown, order
+
+CODE:
+  export default {
+    name: 'training',
+    title: 'Training Gallery',
+    type: 'document',
+    fields: [
+      { name: 'title', title: 'Title', type: 'string' },
+      { name: 'image', title: 'Image', type: 'image' },
+      {
+        name: 'category',
+        title: 'Category',
+        type: 'string',
+        options: {
+          list: [
+            {title: 'Training', value: 'training'},
+            {title: 'Brand Association', value: 'brand'},
+          ],
+        },
+      },
+      { name: 'order', title: 'Order', type: 'number' },
+    ],
+    orderings: [{title: 'Order', name: 'order', by: [{field: 'order', direction: 'asc'}]}],
+  }
+
+
+================================================================================
+11. SCHEMA: about.js (About Section - Singleton)
+================================================================================
+
+File: /studio/schemas/about.js
+
+THINK:
+  - The About section is a SINGLE section on the website
+  - Only ONE "About" document should exist (singleton)
+  - Contains: title, subtitle, paragraphs (multiple text blocks),
+    mission statement, image, stats (label+value pairs)
+
+CODE:
+  export default {
+    name: 'about',
+    title: 'About Section',
+    type: 'document',
+    fields: [
+      {
+        name: 'title',
+        title: 'Title',
+        type: 'string',
+        initialValue: 'Meet Deepa',      // Default value when creating new doc
+      },
+      {
+        name: 'subtitle',
+        title: 'Subtitle',
+        type: 'string',
+        initialValue: 'Professional Makeup Artist in Nellore',
+      },
+      {
+        name: 'paragraphs',
+        title: 'Paragraphs',
+        type: 'array',
+        of: [{type: 'text'}],           // Array of text blocks
+      },
+      { name: 'mission', title: 'Mission Statement', type: 'text' },
+      { name: 'image', title: 'Image', type: 'image' },
+      {
+        name: 'stats',
+        title: 'Statistics',
+        type: 'array',
+        of: [{
+          type: 'object',
+          fields: [
+            {name: 'label', title: 'Label', type: 'string'},
+            {name: 'value', title: 'Value', type: 'string'},
+          ],
+        }],
+        // Array of objects, each with label + value fields
+      },
+    ],
+  }
+
+NEW CONCEPTS:
+  - initialValue: Sets a default value when a new document is created.
+    User can still change it. Only applies on first creation.
+  - type 'array': A list/array field.
+    - of: [{type: 'text'}]: Array items are multi-line text blocks
+    - of: [{type: 'object', fields: [...]}]: Array items are custom objects
+  - type 'object' inside array: Creates a structured sub-item with its own fields
+
+IMPORTANT: "about" is a regular document type, NOT technically a singleton.
+           To enforce singleton (only one document), we use a custom structure
+           in sanity.config.js (see section 13).
+
+MANUAL STEPS:
+  1. Define simple string/text fields
+  2. Use type 'array' for repeatable content (paragraphs list)
+  3. Use type 'array' of 'object' for structured repeatable content (stats)
+  4. Set initialValue for fields that need defaults
+
+
+================================================================================
+12. SCHEMA: siteSettings.js (Singleton - Global Settings)
+================================================================================
+
+File: /studio/schemas/siteSettings.js
+
+THINK:
+  - Global settings for the entire website
+  - Only ONE instance should ever exist
+  - Contains: site title, logos, hero content, section headings
+  - This is a SINGLETON document
+
+CODE:
+  export default {
+    name: 'siteSettings',
+    title: 'Site Settings',
+    type: 'document',
+    fields: [
+      { name: 'title', title: 'Site Title', type: 'string' },
+      { name: 'logo', title: 'Logo', type: 'image',
+        description: 'Main logo (used in Navbar, Hero, Footer)' },
+      { name: 'instagramLogo', title: 'Instagram Logo', type: 'image' },
+      { name: 'heroHeading', title: 'Hero Heading', type: 'string' },
+      { name: 'heroSubheading', title: 'Hero Subheading', type: 'string' },
+      { name: 'heroDescription', title: 'Hero Description', type: 'text' },
+      { name: 'heroImage', title: 'Hero Image', type: 'image' },
+      {
+        name: 'bridalSectionHeading',
+        title: 'Bridal Section Heading',
+        type: 'string',
+        initialValue: 'Bespoke Bridal Makeup Packages',
+      },
+      {
+        name: 'bridalSectionTagline',
+        title: 'Bridal Section Tagline',
+        type: 'string',
+        initialValue: '"Transforming Dreams into Timeless Beauty"',
+      },
+      { name: 'bridalSectionIntro', title: 'Bridal Section Intro Paragraph', type: 'text' },
+      {
+        name: 'aboutSectionTitle',
+        title: 'About Section Title',
+        type: 'string',
+        initialValue: 'Deepa Bridal Studio',
+      },
+    ],
+  }
+
+NOTE: Like "about", this is a regular document that we enforce as a
+      singleton via the Studio configuration (see section 13).
+
+
+================================================================================
+13. STUDIO CONFIGURATION (sanity.config.js)
+================================================================================
+
+File: /studio/sanity.config.js
+
+This is the ENTRY POINT for the Sanity Studio. It tells Sanity:
+  - Which project and dataset to connect to
+  - What plugins to use (@sanity/vision for GROQ testing)
+  - What schema types exist
+  - How to structure the document list (singleton enforcement)
+
+CODE:
+  import {defineConfig} from 'sanity'
+  import {structureTool} from 'sanity/structure'
+  import {visionTool} from '@sanity/vision'
+  import {schemaTypes} from './schemas'
+
+  export default defineConfig({
+    name: 'default',
+    title: 'Deepa Bridal Studio',
+
+    projectId: 'woupzwa5',
+    dataset: 'production',
+
+    plugins: [
+      structureTool({
+        structure: (S) =>
+          S.list()
+            .title('Content')
+            .items([
+              // --- SINGLETON: siteSettings (shown at the top) ---
+              S.listItem()
+                .title('Site Settings')
+                .child(
+                  S.document()
+                    .schemaType('siteSettings')
+                    .documentId('siteSettings')
+                ),
+
+              // --- SINGLETON: about ---
+              S.listItem()
+                .title('About Section')
+                .child(
+                  S.document()
+                    .schemaType('about')
+                    .documentId('about')
+                ),
+
+              // --- REGULAR DOCUMENTS (grouped by section) ---
+              S.divider(),
+
+              S.listItem()
+                .title('Bridal Packages')
+                .schemaType('bridalPackage')
+                .child(S.documentTypeList('bridalPackage').title('Bridal Packages')),
+
+              S.listItem()
+                .title('Services')
+                .schemaType('service')
+                .child(S.documentTypeList('service').title('Services')),
+
+              S.listItem()
+                .title('Gallery Images')
+                .schemaType('galleryImage')
+                .child(S.documentTypeList('galleryImage').title('Gallery Images')),
+
+              S.listItem()
+                .title('Training Gallery')
+                .schemaType('training')
+                .child(S.documentTypeList('training').title('Training Gallery')),
+
+              S.listItem()
+                .title('Testimonials')
+                .schemaType('testimonial')
+                .child(S.documentTypeList('testimonial').title('Testimonials')),
+
+              S.listItem()
+                .title('Brands')
+                .schemaType('brand')
+                .child(S.documentTypeList('brand').title('Brands')),
+
+              S.listItem()
+                .title('FAQs')
+                .schemaType('faq')
+                .child(S.documentTypeList('faq').title('FAQs')),
+            ]),
+      }),
+      visionTool(),
+    ],
+
+    schema: {
+      types: schemaTypes,
+    },
+  })
+
+KEY CONCEPTS:
+  1. Singleton Enforcement:
+     - siteSettings and about are listed as S.listItem() with a fixed
+       documentId (e.g., 'siteSettings').
+     - This means there's ONLY ONE document with that ID.
+     - User cannot create a second one.
+     - The document appears as a single item in the sidebar, not a list.
+
+  2. Regular Documents:
+     - Use S.documentTypeList('bridalPackage') to show all documents of
+       that type in a list view.
+     - User can create, edit, delete multiple documents.
+
+  3. S.divider(): Adds a visual separator in the sidebar menu.
+
+  4. visionTool(): Adds the GROQ query playground to the Studio.
+
+  5. schema: { types: schemaTypes }:
+     - Connects the schema files (from index.js) to the Studio.
+
+MANUAL STEPS:
+  1. Import defineConfig from 'sanity'
+  2. Import structureTool, visionTool
+  3. Import schemaTypes from './schemas'
+  4. Create defineConfig with projectId, dataset
+  5. Configure structureTool with custom list items
+  6. For singletons: S.listItem() -> S.document().schemaType('x').documentId('x')
+  7. For regular docs: S.listItem() -> S.documentTypeList('x')
+  8. Add visionTool() for GROQ testing
+  9. Add schema: { types: schemaTypes }
+
+
+================================================================================
+14. SANITY CLI CONFIGURATION (sanity.cli.js)
+================================================================================
+
+File: /studio/sanity.cli.js
+
+CODE:
+  import {defineCliConfig} from 'sanity/cli'
+
+  export default defineCliConfig({
+    api: {
+      projectId: 'woupzwa5',
+      dataset: 'production',
+    },
+  })
+
+This connects the Sanity CLI (command line) to your project.
+Used for commands like:
+  - sanity start       (run Studio locally, default port 3333)
+  - sanity build       (build Studio for production)
+  - sanity deploy      (deploy Studio to sanity.io)
+
+
+================================================================================
+15. FRONTEND: SANITY CLIENT
+================================================================================
+
+File: /src/sanity/client.js
+
+CODE:
+  import {createClient} from '@sanity/client'
+  import imageUrlBuilder from '@sanity/image-url'
+
+  const client = createClient({
+    projectId: import.meta.env.VITE_SANITY_PROJECT_ID || 'woupzwa5',
+    dataset: import.meta.env.VITE_SANITY_DATASET || 'production',
+    useCdn: true,
+    apiVersion: '2024-01-01',
+  })
+
+  const builder = imageUrlBuilder(client)
+
+  export function urlFor(source) {
+    return builder.image(source)
+  }
+
+  export default client
+
+WHAT THIS DOES:
+  - Creates a Sanity client connected to the project
+  - Uses Vite environment variables (VITE_SANITY_PROJECT_ID, VITE_SANITY_DATASET)
+    with fallback defaults
+  - useCdn: true: Uses Sanity's CDN for faster reads
+  - apiVersion: Pins the Sanity API version for consistency
+  - urlFor(): A helper function that converts Sanity image references
+    into usable image URLs
+
+MANUAL STEPS:
+  1. npm install @sanity/client @sanity/image-url
+  2. Create /src/sanity/client.js
+  3. Initialize client with createClient()
+  4. Export client and urlFor helper
+
+
+================================================================================
+16. FRONTEND: GROQ QUERIES
+================================================================================
+
+File: /src/sanity/queries.js
+
+GROQ = Sanity's query language (Graph-Relational Object Queries)
+
+CODE:
+  import client from './client'
+
+  export const aboutQuery = `*[_type == "about"][0]`
+  // Fetches the single "about" document. [0] gets the first result.
+
+  export const siteSettingsQuery = `*[_type == "siteSettings"][0]`
+  // Fetches the single site settings document.
+
+  export const bridalPackagesQuery = `*[_type == "bridalPackage"] | order(order asc)`
+  // Fetches ALL bridalPackage documents, sorted by "order" ascending.
+
+  export const servicesQuery = `*[_type == "service"] | order(order asc)`
+
+  export const testimonialsQuery = `*[_type == "testimonial"] | order(order asc)`
+
+  export const galleryQuery = `*[_type == "galleryImage"] | order(order asc)`
+
+  export const brandsQuery = `*[_type == "brand"] | order(order asc)`
+
+  export const faqsQuery = `*[_type == "faq"] | order(order asc)`
+
+  export const trainingQuery = `*[_type == "training"] | order(order asc)`
+
+SYNTAX EXPLAINED:
+  *[_type == "bridalPackage"]
+    - * = all documents in the dataset
+    - [_type == "bridalPackage"] = filter to documents where _type matches
+
+  | order(order asc)
+    - | = pipe (like Unix pipe)
+    - order(order asc) = sort by the "order" field ascending
+
+  [0]
+    - Get the first document from the results
+    - Used for singletons (about, siteSettings)
+
+MANUAL STEPS:
+  1. Create one query string per document type
+  2. For singletons: add [0] to get single document
+  3. For lists: add | order(order asc) for sorted results
+  4. Export all query strings
+
+
+================================================================================
+17. FRONTEND: useSanity HOOK
+================================================================================
+
+File: /src/sanity/useSanity.js
+
+CODE:
+  import { useState, useEffect } from 'react'
+  import client from './client'
+
+  export function useSanity(query) {
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+      if (!query) {
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      client.fetch(query)
+        .then(result => {
+          setData(result)
+          setLoading(false)
+        })
+        .catch(err => {
+          setError(err)
+          setLoading(false)
+        })
+    }, [query])
+
+    return { data, loading, error }
+  }
+
+WHAT IT DOES:
+  - A reusable React hook
+  - Takes a GROQ query string as input
+  - Returns { data, loading, error }
+  - Automatically fetches when query changes
+  - Handles loading/error states
+
+HOW TO USE IN A COMPONENT:
+  import { useSanity } from '../sanity/useSanity'
+  import { servicesQuery } from '../sanity/queries'
+
+  function Services() {
+    const { data: services, loading } = useSanity(servicesQuery)
+    if (loading) return <p>Loading...</p>
+    return services?.map(s => <div>{s.title}</div>)
+  }
+
+
+================================================================================
+18. FRONTEND: SiteSettingsProvider (Context)
+================================================================================
+
+File: /src/sanity/SiteSettingsProvider.jsx
+
+The "about" and "siteSettings" data is needed across many components
+(Navbar needs logo, Hero needs heroHeading, Footer needs site title, etc.)
+
+SOLUTION: React Context
+
+CODE:
+  import { createContext, useContext } from 'react'
+  import { useSanity } from './useSanity'
+  import { siteSettingsQuery } from './queries'
+
+  const SiteSettingsContext = createContext(null)
+
+  export function SiteSettingsProvider({ children }) {
+    const { data: settings, loading } = useSanity(siteSettingsQuery)
+
+    return (
+      <SiteSettingsContext.Provider value={{ settings, loading }}>
+        {children}
+      </SiteSettingsContext.Provider>
+    )
+  }
+
+  export function useSiteSettings() {
+    const context = useContext(SiteSettingsContext)
+    if (!context) {
+      throw new Error('useSiteSettings must be used within SiteSettingsProvider')
+    }
+    return context
+  }
+
+HOW IT WORKS:
+  1. SiteSettingsProvider wraps the entire App (in App.jsx)
+  2. It fetches siteSettings once using useSanity
+  3. It provides the data to ALL children via Context
+  4. Any component can call useSiteSettings() to get the data
+
+MANUAL STEPS:
+  1. Create React Context
+  2. Inside Provider, use useSanity(siteSettingsQuery)
+  3. Pass settings + loading through context value
+  4. Export Provider and a consumer hook (useSiteSettings)
+  5. Wrap the app in App.jsx: <SiteSettingsProvider><App /></SiteSettingsProvider>
+
+
+================================================================================
+19. CONNECTING STUDIO TO THE APP
+================================================================================
+
+The Studio runs as a separate app at /studio.
+In production, the Vite build is configured so:
+
+1. Studio is built separately:
+     cd studio && sanity build
+   Output goes to /studio/dist/
+
+2. Vite dev server proxies /studio to port 3333:
+     In vite.config.js (if configured):
+       server: { proxy: { '/studio': 'http://localhost:3333' } }
+
+3. The Studio is accessible at:
+     Development: http://localhost:5173/studio
+     Production:  https://deepabridal.in/studio
+
+4. The frontend fetches data via the Sanity Client API:
+     client.fetch(query)  -->  https://woupzwa5.api.sanity.io/v1/...
+   No proxy needed -- it's a direct API call to Sanity's servers.
+
+
+================================================================================
+20. THE BIG PICTURE: DATA FLOW
+================================================================================
+
+  SANITY CLOUD (sanity.io/manage)
+  ├── Project: "Deepa Bridal Studio" (ID: woupzwa5)
+  │   └── Dataset: "production"
+  │       ├── siteSettings (1 document - singleton)
+  │       ├── about (1 document - singleton)
+  │       ├── service (multiple documents)
+  │       ├── bridalPackage (3 documents - Basic, HD, Airbrush)
+  │       ├── galleryImage (multiple documents)
+  │       ├── training (multiple documents)
+  │       ├── testimonial (multiple documents)
+  │       ├── brand (multiple documents)
+  │       └── faq (multiple documents)
+  │           ↑                          ↑
+  │    [Sanity Client API]       [Sanity Studio UI]
+  │           │                          │
+  ────────────┼──────────────────────────┼────────────
+  CLIENT SIDE │                          │
+              │                          │
+        /src/sanity/client.js       /studio/ (React SPA)
+              │                          │
+              ▼                          │
+        /src/sanity/queries.js           │
+        (GROQ query strings)              │
+              │                          │
+              ▼                          │
+        /src/sanity/useSanity.js          │
+        (React hook: fetches data)        │
+              │                          │
+              ▼                          │
+        /src/sanity/SiteSettingsProvider.jsx
+        (Context: provides settings globally)
+              │
+              ▼
+        React Components
+        (About, Hero, Services, Gallery, etc.)
+              │
+              ▼
+        Browser renders the website
+
+
+
+================================================================================
+21. GALLERY SCHEMA DEEP DIVE (Image + Order Only)
+================================================================================
+
+This section explains the simple gallery schema in detail.
+Exactly 2 fields: Image upload + Order number.
+
+================================================================================
+FIELD 1: Image Upload
+================================================================================
+
+Schema code:
+  {
+    name: 'image',
+    title: 'Photo',
+    type: 'image',
+    options: { hotspot: true },
+  }
+
+WHAT HAPPENS WHEN YOU UPLOAD:
+  - Sanity stores the image in its CDN
+  - The document stores a reference: { _type: 'image', asset: { _ref: 'image-xxx' } }
+  - You can click to replace/remove the image anytime
+
+HOW TO GET THE IMAGE URL (in frontend):
+  import { urlFor } from '../sanity/client'
+  urlFor(image).width(800).url()
+  // Returns: https://cdn.sanity.io/images/PROJECT_ID/dataset/image-xxx-800x600.jpg
+
+================================================================================
+FIELD 2: Order / Position
+================================================================================
+
+Schema code:
+  {
+    name: 'order',
+    title: 'Position (Order)',
+    type: 'number',
+    description: 'Lower number = appears first. E.g., 1, 2, 3...',
+  }
+
+WHAT IT DOES:
+  - Just a NUMBER. That's it.
+  - orderings sorts documents by this number ascending.
+  - Lower number = comes first in the list.
+  - Examples: 1, 2, 3, ..., 10, 11, 12, ... any number you want.
+
+HOW THE FRONTEND USES IT (GROQ query):
+  *[_type == "galleryImage"] | order(order asc)
+  // Returns all gallery images sorted by order: 1, 2, 3, 10, 11...
+
+
+================================================================================
+22. HOW ORDER REALLY WORKS (No Auto-Replace)
+================================================================================
+
+IMPORTANT: Nuvvu artham cheskovali — "Replace" automatic ga JARADU.
+
+EXAMPLE SCENARIO:
+
+Step 1: You have 5 photos in the gallery:
+  ┌──────────────────────┐
+  │  Photo A  | order: 1 │
+  │  Photo B  | order: 2 │
+  │  Photo C  | order: 3 │
+  │  Photo D  | order: 4 │
+  │  Photo E  | order: 5 │
+  └──────────────────────┘
+
+Step 2: You create a NEW document, upload Photo F, set order: 3.
+  ┌──────────────────────┐
+  │  Photo A  | order: 1 │
+  │  Photo B  | order: 2 │
+  │  Photo C  | order: 3 │  ← OLD photo
+  │  Photo D  | order: 4 │
+  │  Photo E  | order: 5 │
+  │  Photo F  | order: 3 │  ← NEW photo, same order
+  └──────────────────────┘
+
+RESULT: Both Photo C AND Photo F have order: 3. Two photos at same position.
+        Nothing got replaced. Sanity allows duplicate order values.
+
+================================================================================
+HOW TO ACTUALLY "REPLACE" A PHOTO
+================================================================================
+
+NEED TO REPLACE position 3 photo? Do one of these:
+
+OPTION A: Edit the existing document (Best way)
+  1. Go to Sanity Studio → Gallery Images
+  2. Click on the document that has order: 3
+  3. Click on the image field → "Upload" or "Choose alternative"
+  4. Upload new photo → Click "Publish"
+  RESULT: Same document, same order: 3, but new image. This IS replacement.
+
+OPTION B: Delete old + Create new
+  1. Delete the document with order: 3
+  2. Create a new document, upload photo, set order: 3
+  RESULT: Old gone, new one at position 3.
+
+OPTION C: Change the order number (to move, not replace)
+  1. Edit Photo C's document → change order from 3 to 6
+  2. Now position 3 is empty → create Photo F with order: 3
+  RESULT: Photo C moved to position 6, Photo F at position 3.
+
+================================================================================
+IMPORTANT: Order is just sorting, not a slot system
+================================================================================
+
+Sanity lo "order" anedi just NUMBER sorting kosam. It is NOT:
+  - A slot system (slot 1, slot 2, etc.)
+  - Automatic replacement (set order=6 does NOT delete old position 6)
+  - Unique constraint (you CAN have two docs with same order)
+
+To maintain clean ordering, you (as the editor) need to:
+  1. Keep order numbers unique manually
+  2. Edit an existing doc to replace its photo (don't create new)
+  3. Or delete old doc before creating new with same order
+
+THIS IS NORMAL for Sanity. Every CMS works this way.
+
+================================================================================
+HOW THE FRONTEND GALLERY COMPONENT RENDERS THIS
+================================================================================
+
+Typical React component:
+
+  function Gallery() {
+    const { data: images, loading } = useSanity(galleryQuery)
+    // images = [ {image: {...}, order: 1}, {image: {...}, order: 2}, ... ]
+
+    if (loading) return <Loader />
+    return (
+      <div className="grid grid-cols-3 gap-4">
+        {images.map(img => (
+          <img key={img._id} src={urlFor(img.image).width(400).url()} />
+        ))}
+      </div>
+    )
+  }
+
+GROQ query:
+  export const galleryQuery = `*[_type == "galleryImage"] | order(order asc)`
+
+That's it. Simple data-in → HTML-out.
+
+
+================================================================================
+23. DEPLOYING THE SANITY STUDIO
+================================================================================
+
+Studio deploy cheyali ante 2 ways. Evaru use chestaro batti.
+
+================================================================================
+METHOD 1: Deploy to Sanity Hosting (sanity deploy) ★ RECOMMENDED
+================================================================================
+
+Best for: When the client should access Studio at a Sanity URL.
+
+Steps:
+  1. Go to the studio folder:
+       cd studio
+
+  2. Build the studio:
+       npx sanity build
+
+  3. Deploy to Sanity's servers:
+       npx sanity deploy
+
+  4. It asks for a hostname. Choose something like:
+       deepabridal
+     So your studio URL becomes:
+       https://deepabridal.sanity.studio/
+
+  5. Done. Client can login at that URL and manage content.
+
+  NOTE: First time deploy ayyaka, sanity.io/manage lo project settings lo
+        "CORS origins" ki ikkada vunna website URL (like https://deepabridal.in)
+        add cheyali. Otherwise browser blocks requests.
+
+================================================================================
+METHOD 2: Embed Studio in the main app (at /studio route)
+================================================================================
+
+Best for: When you want the Studio at yoursite.com/studio
+
+Steps:
+  1. Build the studio:
+       cd studio && npx sanity build
+
+  2. Output comes to studio/dist/ folder
+
+  3. Copy dist/ content to your app's public/studio/ folder
+     Or configure Vite to serve it.
+
+  4. In vite.config.js:
+       import { defineConfig } from 'vite'
+       import react from '@vitejs/plugin-react'
+
+       export default defineConfig({
+         plugins: [react()],
+         server: {
+           proxy: {
+             '/studio': {
+               target: 'http://localhost:3333',
+               changeOrigin: true,
+             },
+           },
+         },
+       })
+
+  5. For production (Vercel), add vercel.json rewriting:
+       {
+         "rewrites": [
+           { "source": "/studio/:path*", "destination": "/studio/index.html" }
+         ]
+       }
+
+================================================================================
+BEFORE DEPLOY - CHECKLIST
+================================================================================
+
+[ ] sanity.config.js lo projectId correct aa? (woupzwa5 or 8vissldq)
+[ ] sanity.cli.js lo projectId same aa?
+[ ] src/sanity/client.js lo projectId same aa?
+[ ] Dataset name correct aa? (mostly "production")
+[ ] CORS origins add chesava? (sanity.io/manage → API → CORS origins)
+     Add: http://localhost:5173 (dev)
+     Add: https://deepabridal.in (production)
+[ ] .env.example lo VITE_SANITY_PROJECT_ID configured aa?
+
+================================================================================
+DEPLOY COMMAND REFERENCE
+================================================================================
+
+  # Studio development
+  cd studio
+  npx sanity start              # Runs at http://localhost:3333
+
+  # Studio build (for production)
+  cd studio
+  npx sanity build              # Output in studio/dist/
+
+  # Deploy to Sanity's server
+  cd studio
+  npx sanity deploy             # Deploys to yoursite.sanity.studio
+
+  # Manage deployments
+  npx sanity undeploy           # Removes deployed studio
+
+================================================================================
+COMMON PROBLEMS & SOLUTIONS
+================================================================================
+
+PROBLEM: "Failed to load resource: net::ERR_BLOCKED_BY_CORS"
+  FIX: sanity.io/manage → API → CORS origins → Add your website URL
+
+PROBLEM: "Project ID not configured"
+  FIX: Check sanity.config.js and sanity.cli.js have correct projectId
+
+PROBLEM: "You are not authorized to access this dataset"
+  FIX: sanity.io/manage → Add user/email to project members
+
+PROBLEM: After deploy, images not showing on website
+  FIX: Make sure urlFor() image URL builder has correct projectId/dataset
+
+PROBLEM: "order: 6 iste replace avutundi anukunna kani replace avaledu"
+  FIX: Sanity lo automatic replace UNDU. Old document ni delete chesi
+       kotha document create cheyali, or existing doc lo image ni edit cheyali.
+
+================================================================================
+END OF GUIDE
+================================================================================
+
+1. CREATE SCHEMA FILES (in /studio/schemas/):
+   - One .js file per document type
+   - Define name, title, type: 'document', fields array, orderings
+   - Export default
+
+2. REGISTER IN index.js:
+   - Import each schema file
+   - Export as array: export const schemaTypes = [all schemas]
+
+3. CONFIGURE IN sanity.config.js:
+   - Import schemaTypes from ./schemas
+   - Configure structureTool with sidebar layout
+   - Use S.document() with fixed ID for singletons
+   - Use S.documentTypeList() for regular document lists
+
+4. BUILD THE FRONTEND LAYER (in /src/sanity/):
+   - client.js: Initialize Sanity client
+   - queries.js: Define GROQ queries
+   - useSanity.js: React hook for data fetching
+   - SiteSettingsProvider.jsx: Context for global settings
+
+5. USE DATA IN COMPONENTS:
+   - Import useSanity and queries
+   - Call useSanity(queryString)
+   - Render {data} in JSX
+
+================================================================================
+END OF GUIDE
+================================================================================

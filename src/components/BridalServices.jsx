@@ -1,0 +1,79 @@
+import { motion } from "framer-motion";
+import { useInView } from "framer-motion";
+import { useRef } from "react";
+
+const packages = [
+  { title: "Timeless Elegance", subtitle: "Basic Makeup",
+    description: "Embrace a simple, natural radiance with lightweight coverage. Perfect for brides who love a subtle, fresh, and effortlessly beautiful look.",
+    img: "/GAL1.png" },
+  { title: "Picture-Perfect Glow", subtitle: "HD Makeup",
+    description: "Achieve a smooth, high-definition finish that looks flawless both in person and in photographs, giving you a polished and radiant appearance throughout your celebration.",
+    img: "/GAL2.png" },
+  { title: "Airbrush Perfection", subtitle: "Airbrush Makeup",
+    description: "Experience advanced airbrush technology that delivers an ultra-lightweight, even, and radiant finish. Perfect for achieving a naturally flawless look that lasts throughout your special day.",
+    img: "/GAL3.png" },
+];
+
+function BridalImage({ src, title }) {
+  return (
+    <div className="relative aspect-[1/1] overflow-hidden border border-accent-800/30 mb-5"
+      style={{backgroundColor:'#3d0000'}}>
+      <img src={src} alt={`${title} - Teju Bridal Artist`}
+        className="w-full h-full object-contain absolute inset-0" loading="lazy" />
+      <div className="absolute inset-0 bg-gradient-to-t from-red-950/30 to-transparent pointer-events-none" />
+    </div>
+  );
+}
+
+function BridalPackageCard({ pkg, index }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div ref={ref}
+      initial={{opacity:0,y:40}} animate={inView?{opacity:1,y:0}:{}}
+      transition={{duration:0.6,delay:index*0.15}}
+      className="relative group border border-accent-800/30 hover:border-accent-600/50 transition-all duration-500 overflow-hidden flex flex-col"
+      style={{backgroundColor:'rgba(61,0,0,0.7)'}}>
+      <div className="absolute inset-0 opacity-60" style={{
+        backgroundImage:`linear-gradient(45deg,rgba(255,255,255,0.018) 25%,transparent 25%),linear-gradient(-45deg,rgba(255,255,255,0.018) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(255,255,255,0.018) 75%),linear-gradient(-45deg,transparent 75%,rgba(255,255,255,0.018) 75%)`,
+        backgroundSize:'5px 5px',backgroundPosition:'0 0,0 2.5px,2.5px -2.5px,-2.5px 0'
+      }} />
+      <div className="absolute top-0 right-0 w-14 h-14 overflow-hidden z-20">
+        <div className="absolute top-0 right-0 w-px h-7 bg-gradient-to-b from-accent-600/50 to-transparent" />
+        <div className="absolute top-0 right-0 h-px w-7 bg-gradient-to-l from-accent-600/50 to-transparent" />
+      </div>
+      <BridalImage src={pkg.img} title={pkg.title} />
+      <div className="relative z-10 flex flex-col flex-1 px-5 sm:px-6 md:px-8 pb-5 sm:pb-6 md:pb-8">
+        <div className="mb-3">
+          <h3 className="font-display text-3xl accent-text">{pkg.title}</h3>
+          <p className="font-sans text-sm tracking-[0.3em] uppercase text-accent-400/80 mt-1">{pkg.subtitle}</p>
+        </div>
+        <p className="font-body text-base sm:text-lg text-white/90 leading-relaxed">{pkg.description}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+export default function BridalServices() {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <section id="bridal-services" className="deepa-bg section-padding relative overflow-hidden"
+      aria-label="Bridal makeup packages by Teju Bridal Artist">
+      <div ref={ref} className="relative z-10 max-w-6xl mx-auto">
+        <motion.div initial={{opacity:0,y:30}} animate={inView?{opacity:1,y:0}:{}} transition={{duration:0.8}} className="text-center mb-14">
+          <p className="font-sans text-xs tracking-[0.6em] uppercase text-accent-600/75 mb-4">Teju Bridal Artist</p>
+          <h2 className="font-display text-4xl md:text-5xl accent-text mb-3">Bespoke Bridal Makeup Packages</h2>
+          <p className="font-display text-xl md:text-2xl text-accent-300/80 italic mb-5">&ldquo;Transforming Dreams into Timeless Beauty&rdquo;</p>
+          <p className="font-body text-lg sm:text-xl text-white/90 max-w-3xl mx-auto">Once you walk in, no matter the occasion, we surpass your expectations, delivering a result beyond what you imagined — always within your budget.</p>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {packages.map((pkg, i) => (
+            <BridalPackageCard key={pkg.title} pkg={pkg} index={i}/>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
