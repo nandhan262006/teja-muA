@@ -31,7 +31,7 @@ export default function Contact() {
               <div className="space-y-5">
                 {[
                   {icon:Phone, label:"Call / WhatsApp", value:"+91 98400 56242", href:"tel:+919840056242"},
-                  {icon:MapPin, label:"Our Address",       value:"27-1-156, 10th Cross Road, Balaji Nagar, Nellore, Andhra Pradesh 524002", href:"https://maps.google.com/?q=27-1-156+10th+cross+road+Balaji+Nagar+Nellore+Andhra+Pradesh+524002"},
+                  {icon:MapPin, label:"Our Address",       value:"Teju Makeup artistry, Nellore", href:"https://maps.app.goo.gl/EXrBHdmpDDnYz1tF8"},
                   {icon:Clock, label:"Studio Hours",    value:"Mon–Sun: 9 AM – 8 PM"},
                 ].map(({icon:Icon,label,value,href})=>(
                   <div key={label} className="flex items-start gap-4 group">
@@ -73,11 +73,11 @@ export default function Contact() {
               <p className="font-sans text-xs tracking-[0.32em] uppercase text-accent-700/70 mb-3">Find Us on Google Maps</p>
               <div className="w-full aspect-[4/3] overflow-hidden border border-accent-800/20">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.5!2d79.974!3d14.429!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4cf334f33eef47%3A0xbc33009919c4397e!2sBalaji+Nagar+Nellore!5e0!3m2!1sen!2sin"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.5!2d79.9925663!3d14.4501875!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4cf332001c8f4b%3A0x8f691631ef878564!2sTeju+Makeup+artistry!5e0!3m2!1sen!2sin"
                   width="100%" height="100%" style={{border:0, minHeight:'280px'}}
                   allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                  title="Teju Bridal Artist location in Balaji Nagar, Nellore"
-                  aria-label="Map showing Teju Bridal Artist at Balaji Nagar, Nellore">
+                  title="Teju Makeup artistry location on map"
+                  aria-label="Map showing Teju Makeup artistry location">
                 </iframe>
               </div>
             </div>
